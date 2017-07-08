@@ -12,6 +12,74 @@ class Vehicle(object):
 
   # TODO - Implement this method.
   def update_state(self, predictions):
+    
+    keys = predictions.keys()
+    #print(predictions[-1])
+
+    cars_in_range = []
+
+    for each in keys:
+      temp_car = predictions[each]
+      temp_loc = temp_car[0]['s']
+      
+      diff_s = self.s - temp_loc
+      if (diff_s >= -15) and (diff_s <= 3): 
+      # My car is ahead by at most three or behind by 10.
+        cars_in_range.append(each)
+
+    # Remove -1 (my own car).
+    del cars_in_range[-1]
+    
+    delta_s = self.goal_s - self.s
+    delta_lane = self.goal_lane - self.lane
+    #print("delta s: ", delta_s)
+    #print("delta Lane: ", delta_lane)
+    #print("Speed: ", self.v, " a: ", self.a)
+
+    if (delta_s < 50):
+      if (self.state == "KL") or (self.state == "LCR") or (self.state == "LCL"):
+        if delta_lane > 0:
+          self.state = "PLCL"
+        elif delta_lane < 0:
+          self.state = "PLCR"
+        else:
+          self.state = "KL"
+      elif self.state == "PLCL":
+        self.state = "LCL"
+      elif self.state == "PLCR":
+        self.state = "LCR"
+    else:
+      # Try to go as fast as possible.
+      lane_l = 0
+      lane_c = 0
+      lane_r = 0
+      for key in cars_in_range:
+        temp_car = predictions[key]
+        temp_lane = temp_car[0]['lane']
+        if temp_lane == self.lane:
+          print(key, " is in the same lane.")
+          lane_c = lane_c + 1
+        if (temp_lane == self.lane+1):
+          print(key, " is in lane to left.")
+          lane_l = lane_l + 1
+        if (temp_lane == self.lane-1):
+          print(key, " is in lane to right.")
+          lane_r = lane_r + 1
+        
+      if lane_c == 0:
+        self.state = "KL"
+      elif (lane_r == 0) and (self.lane-1 >=0):
+        print("Right Clear Moving")
+        self.state = "LCR"
+      elif (lane_l == 0) and (self.lane+1 <= 3):
+        print("Left clear Moving")
+        self.state = "LCL"
+      else:
+        print("Nothing open")
+        self.state = "KL"
+        
+    
+
     """
     Updates the "state" of the vehicle by assigning one of the
     following values to 'self.state':
@@ -45,7 +113,7 @@ class Vehicle(object):
     }
 
     """
-    self.state = "KL" # this is an example of how you change state.
+    
   
   def configure(self, road_data):
     """
